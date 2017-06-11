@@ -34,33 +34,49 @@ do(State) ->
                       [AppInfo]
               end,
     TestsEnabled = [P || P <- rebar_state:current_profiles(State), P == test],
-    [begin
-         EBinDir = rebar_app_info:ebin_dir(AppInfo),
-         Opts = rebar_app_info:opts(AppInfo),
-         SourceDir = filename:join(rebar_app_info:dir(AppInfo), "src"),
-         Info = rebar_dir:src_dirs(Opts),         
-         
-         FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.alp\$"),
-         Deps = rebar_state:all_deps(State),
+    case compile_apps(Apps, TestsEnabled, State, []) of
+        [] ->
+            {ok, State};
+        Errors ->
+            io:format("~s", [Errors]),
+            {error, "error"}
+    end.
 
-         AllFoundFiles = FoundFiles ++ lists:flatmap(fun gather_files/1, Deps),
+compile_apps([], _TestsEnabled, State, Errors) ->
+    Errors;
 
-         case alpaca:compile({files, AllFoundFiles}, TestsEnabled) of
-             {ok, Compiled} ->
-                [file:write_file(filename:join(EBinDir, FileName), BeamBinary) ||
-                 {compiled_module, ModuleName, FileName, BeamBinary} <- Compiled];
-             {error, Reason} ->
-                 io:format(standard_error, "Compile error: ~s", format_error(Reason))
-         end
-     end || AppInfo <- Apps],
+compile_apps([AppInfo | Apps], TestsEnabled, State, Errors) ->
+    EBinDir = rebar_app_info:ebin_dir(AppInfo),
+    Opts = rebar_app_info:opts(AppInfo),
+    SourceDir = filename:join(rebar_app_info:dir(AppInfo), "src"),
+    Info = rebar_dir:src_dirs(Opts),
 
-    {ok, State}.
+    FoundFiles = rebar_utils:find_files(SourceDir, ".*\\.alp\$"),
+    Deps = rebar_state:all_deps(State),
+
+    AllFoundFiles = FoundFiles ++ lists:flatmap(fun gather_files/1, Deps),
+
+    case alpaca:compile({files, AllFoundFiles}, TestsEnabled) of
+        {ok, Compiled} ->
+            [file:write_file(filename:join(EBinDir, FileName), BeamBinary) ||
+                {compiled_module, ModuleName, FileName, BeamBinary} <- Compiled],
+            compile_apps(Apps, TestsEnabled, State, Errors);
+        {error, Reason} ->
+            Error = format_error(SourceDir, Reason),
+            compile_apps(Apps, TestsEnabled, State, [Error | Errors])
+    end.
 
 gather_files(AppInfo) ->
     SourceDir = filename:join(rebar_app_info:dir(AppInfo), "src"),
     rebar_utils:find_files(SourceDir, ".*\\.alp\$").
-   
 
--spec format_error(any()) ->  iolist().
+-spec format_error( any()) ->  iolist().
 format_error(Reason) ->
     io_lib:format("~p", [Reason]).
+
+-spec format_error(string(), any()) ->  iolist().
+format_error(SourceDir, {cannot_unify, Module, Line, TypeA, TypeB}) ->
+    cf:format("~!__~s/~!_c~s.alp~!!:~!c~p~!! "
+              "Failed to unify types ~!g~s~!! and ~!r~s~!!.~n", [SourceDir, Module, Line, TypeA, TypeB]);
+format_error(SourceDir, Reason) ->
+    io_lib:format("~s: ~p", [SourceDir, Reason]).
