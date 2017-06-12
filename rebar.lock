@@ -1,1 +1,18 @@
-[].
+{"1.1.0",
+[{<<"alpaca">>,
+  {git,"https://github.com/alpaca-lang/alpaca.git",
+       {ref,"19a68bf94b7e6253dc2dbfab66d4994f55d58972"}},
+  0},
+ {<<"apcshell">>,
+  {git,"https://github.com/lepoetemaudit/alpaca-repl.git",
+       {ref,"a403aa4f0e1eade2a5e6ab858c4a4a37db740c66"}},
+  0},
+ {<<"cf">>,{pkg,<<"cf">>,<<"0.2.2">>},0},
+ {<<"epo_runtime">>,
+  {git,"git://github.com/brigadier/epo_runtime.git",
+       {ref,"a3e50e7cebb526f833757e867bbe914c1da7baa3"}},
+  1}]}.
+[
+{pkg_hash,[
+ {<<"cf">>, <<"7F2913FFF90ABCABD0F489896CFEB0B0674F6C8DF6C10B17A83175448029896C">>}]}
+].
