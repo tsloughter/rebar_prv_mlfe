@@ -97,7 +97,7 @@ format_error(SourceDir, Reason) ->
     io_lib:format("~s: ~p", [SourceDir, Reason]).
 
 format_p_error({syntax_error,[]}) ->
-    {cf:format("syntax error near ~!rthe end of the line~!!"), ""};
+    {cf:format("syntax error before ~!rthe end of the line~!!"), ""};
 
 format_p_error({syntax_error,[Offender]}) ->
     O = unquote(Offender),
