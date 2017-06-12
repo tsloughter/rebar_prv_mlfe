@@ -76,7 +76,55 @@ format_error(Reason) ->
 
 -spec format_error(string(), any()) ->  iolist().
 format_error(SourceDir, {cannot_unify, Module, Line, TypeA, TypeB}) ->
-    cf:format("~!__~s/~!_c~s.alp~!!:~!c~p~!! "
-              "Failed to unify types ~!g~s~!! and ~!r~s~!!.~n", [SourceDir, Module, Line, TypeA, TypeB]);
+    Ctx = get_context(SourceDir, Module, Line),
+    cf:format("~!__~s/~!_c~s.alp~!!:~!c~p~!!~n"
+              "  ~!B=> ~!WFailed to unify types ~!g~s~!! ~!Wand ~!r~s~!!.~n"
+              "~n"
+              "~s~n", [SourceDir, Module, Line, TypeA, TypeB,Ctx]);
 format_error(SourceDir, Reason) ->
     io_lib:format("~s: ~p", [SourceDir, Reason]).
+
+
+get_context(SourceDir, Module, Target) ->
+    case file:open(io_lib:format("~s/~s.alp", [SourceDir, Module]),
+                   [read, binary]) of
+        {ok, Device} ->
+            read_lines(Device, 1, Target, []);
+        E ->
+            ""
+    end.
+
+-define(AREA, 2).
+
+
+read_lines(Device, Line, Target, Acc)
+  when Line < Target - ?AREA ->
+    case io:get_line(Device, "") of
+        eof ->
+            file:close(Device),
+            lists:reverse(Acc);
+        _Txt ->
+            read_lines(Device, Line + 1, Target, Acc)
+    end;
+read_lines(Device, Line, Target, Acc)
+  when Line > Target + ?AREA ->
+    file:close(Device),
+    lists:reverse(Acc);
+
+read_lines(Device, Line, Target, Acc) ->
+    case io:get_line(Device, "") of
+        eof ->
+            file:close(Device),
+            lists:reverse(Acc);
+        Txt ->
+            Fmt = case Line of
+                      Target ->
+                          "~!r~4b~!!: ~s";
+                      _ ->
+                          "~!c~4b~!!: ~s"
+                  end,
+            Acc1 = [cf:format(Fmt, [Line, Txt]) | Acc],
+            read_lines(Device, Line + 1, Target, Acc1)
+    end.
+
+
