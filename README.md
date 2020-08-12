@@ -18,11 +18,10 @@ placed the Alpaca release.
 
 Add the plugin to your rebar config:
 
-```
+```erlang
 {plugins, [
-    {rebar_prv_alpaca, ".*", {git, "https://github.com/alpaca/rebar_prv_alpaca.git", {branch, "master"}}}
+    {rebar_prv_alpaca, ".*", {git, "https://github.com/alpaca-lang/rebar_prv_alpaca.git", {branch, "master"}}}
 ]}.
-
 
 {provider_hooks, [{post, [{compile, {alpaca, compile}}]}]}.
 ```
